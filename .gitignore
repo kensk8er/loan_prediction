@@ -1,0 +1,8 @@
+code/*.pyc
+code/midi
+params
+data
+html
+*.pyc
+*~
+*.swp
