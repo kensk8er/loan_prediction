@@ -36,10 +36,13 @@ References:
 """
 __docformat__ = 'restructedtext en'
 
+import sys
+import os
+# add a path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../util')
+
 import cPickle
 import gzip
-import os
-import sys
 import time
 
 import numpy
@@ -47,9 +50,10 @@ import numpy
 import theano
 import theano.tensor as T
 
-import var_dump
+from var_dump import var_dump
 from unpickle import unpickle
-from pickle import pickle
+from enpickle import enpickle
+import csv
 
 
 class LogisticRegression(object):
@@ -89,6 +93,10 @@ class LogisticRegression(object):
 
 		# compute vector of class-membership probabilities in symbolic form
 		self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
+
+		# compute the expected values
+		indices = [i for i in range(n_out)] # y values
+		self.ex_y = T.sum(self.p_y_given_x * indices, axis=1)
 
 		# compute prediction as class whose probability is maximal in
 		# symbolic form
@@ -137,18 +145,24 @@ class LogisticRegression(object):
 		"""
 
 		# check if y has same dimension of y_pred
-		if y.ndim != self.y_pred.ndim:
-			raise TypeError('y should have the same shape as self.y_pred',
-				('y', target.type, 'y_pred', self.y_pred.type))
+		#if y.ndim != self.y_pred.ndim:
+		if y.ndim != self.ex_y.ndim:
+			raise TypeError('y should have the same shape as self.ex_y',
+				('y', target.type, 'ex_y', self.ex_y.type))
 		# check if y is of the correct datatype
 		if y.dtype.startswith('int'):
 			# the T.neq operator returns a vector of 0s and 1s, where 1
 			# represents a mistake in prediction
-			return T.mean(T.neq(self.y_pred, y))
+
+			# binary error
+			#return T.mean(T.neq(self.y_pred, y))
+
+			# Mean-absolute error
+			return T.mean(T.abs_(self.ex_y - y))
 		else:
 			raise NotImplementedError()
 
-def load_data(dataset, mode='train', amount='full'):
+def load_data(dataset, mode='train', amount='full', valid_num=10000):
 	''' Loads the dataset
 
 	:type dataset: string
@@ -169,27 +183,36 @@ def load_data(dataset, mode='train', amount='full'):
 		# load training and validation data
 		if amount == 'full':
 			print 'full training...'
-			train_set_x = []
-			train_set_y = []
-			for i in xrange(1,101): # from 1 to 100 TBF: hard code
-				print str(i), '/', str(100)
-				train_set_x_batch = unpickle('data/train_set_flip_x_' + str(i) + '.pkl')
-				train_set_x.extend(train_set_x_batch)
+			#train_set_x = []
+			#train_set_y = []
+			#for i in xrange(1,101): # from 1 to 100 TBF: hard code
+			#	print str(i), '/', str(100)
+			#	train_set_x_batch = unpickle('data/train_set_flip_x_' + str(i) + '.pkl')
+			#	train_set_x.extend(train_set_x_batch)
 
-				train_set_y_batch = unpickle('data/train_set_flip_y_' + str(i) + '.pkl')
-				train_set_y.extend(train_set_y_batch)
+			#	train_set_y_batch = unpickle('data/train_set_flip_y_' + str(i) + '.pkl')
+			#	train_set_y.extend(train_set_y_batch)
+			train_set = unpickle('data/train_simple.pkl')
+
+			valid_set_x = train_set[0][-valid_num:]
+			valid_set_y = train_set[1][-valid_num:]
+			valid_set = (valid_set_x, valid_set_y)
+
+			train_set_x = train_set[0][:-valid_num]
+			train_set_y = train_set[1][:-valid_num]
+			train_set = (train_set_x, train_set_y)
 
 			#train_set_y = unpickle('data/train_set_y.pkl')
 			#train_set_y.extend(train_set_y)
 
-			train_set = (train_set_x, train_set_y)
+			#train_set = (train_set_x, train_set_y)
 
 			#train_set = unpickle('data/train_set.pkl')
-			valid_set = unpickle('data/valid_set.pkl')
+			#valid_set = unpickle('data/valid_set.pkl')
 		elif amount == 'min':
 			print 'min training...'
-			train_set = unpickle('data/min_train_set_flip.pkl')
-			valid_set = unpickle('data/min_valid_set.pkl')
+			train_set = unpickle('data/min_train_simple.pkl')
+			valid_set = unpickle('data/min_valid_simple.pkl')
 		else:
 			print 'amount shoule be either full or min'
 			raise NotImplementedError()
@@ -198,14 +221,15 @@ def load_data(dataset, mode='train', amount='full'):
 		#test_set = unpickle('data/test_set.pkl')
 		print 'loading test data...'
 		if amount == 'full':
-			test_set = []
-			for i in xrange(1, 301): # from 1 to 300 TBF: hard code
-				print str(i), '/', str(300)
-				test_set_batch = unpickle('data/test_set_' + str(i) + '.pkl')
-				test_set.extend(test_set_batch)
+			#test_set = []
+			#for i in xrange(1, 301): # from 1 to 300 TBF: hard code
+			#	print str(i), '/', str(300)
+			#	test_set_batch = unpickle('data/test_set_' + str(i) + '.pkl')
+			#	test_set.extend(test_set_batch)
+			test_set = unpickle('data/test_simple.pkl')
 			test_set = (test_set, [0 for i in xrange(0,len(test_set))])
 		else:
-			test_set = unpickle('data/train_set_flip_x_1.pkl')
+			test_set = unpickle('data/min_test_simple.pkl')
 			test_set = (test_set, [0 for i in xrange(0,len(test_set))])
 		print 'done!'
 
@@ -254,12 +278,12 @@ def load_data(dataset, mode='train', amount='full'):
 
 
 def save_parameters(params, file_name):
-	pickle(params, 'params/' + file_name + '.pkl')
+	enpickle(params, 'params/' + file_name + '.pkl')
 
 
-def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
+def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
 						   dataset='cifar-10-batches-py',
-						   batch_size=1000):
+						   batch_size=1, mode='train', amount='full', valid_num=10000):
 	"""
 	Demonstrate stochastic gradient descent optimization of a log-linear
 	model
@@ -278,16 +302,20 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 				 http://www.iro.umontreal.ca/~lisa/deep/data/mnist/mnist.pkl.gz
 
 	"""
-	datasets = load_data(dataset)
+	datasets = load_data(dataset,mode,amount,valid_num)
 
-	train_set_x, train_set_y = datasets[0]
-	valid_set_x, valid_set_y = datasets[1]
-	test_set_x, test_set_y = datasets[2]
+	if mode == 'train':
+		train_set_x, train_set_y = datasets[0]
+		valid_set_x, valid_set_y = datasets[1]
+	else:
+		test_set_x, test_set_y = datasets[0]
 
 	# compute number of minibatches for training, validation and testing
-	n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
-	n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
-	n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
+	if mode == 'train':
+		n_train_batches = train_set_x.get_value(borrow=True).shape[0] / batch_size
+		n_valid_batches = valid_set_x.get_value(borrow=True).shape[0] / batch_size
+	else:
+		n_test_batches = test_set_x.get_value(borrow=True).shape[0] / batch_size
 
 	######################
 	# BUILD ACTUAL MODEL #
@@ -302,7 +330,11 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 
 	# construct the logistic regression class
 	# Each CIFAR-10 image has size 32*32*3 (RGB image)
-	classifier = LogisticRegression(input=x, n_in=32 * 32 * 3, n_out=10)
+	classifier = LogisticRegression(input=x, n_in=769, n_out=101)
+
+	## load the saved parameters
+	if mode == 'test':
+		learned_params = unpickle('params/logistic_sgd.pkl')
 
 	# the cost we minimize during training is the negative log likelihood of
 	# the model in symbolic format
@@ -310,36 +342,56 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 
 	# compiling a Theano function that computes the mistakes that are made by
 	# the model on a minibatch
-	test_model = theano.function(inputs=[index],
-			outputs=classifier.errors(y),
-			givens={
-				x: test_set_x[index * batch_size: (index + 1) * batch_size],
-				y: test_set_y[index * batch_size: (index + 1) * batch_size]})
+	if mode == 'test':
+		test_model = theano.function(inputs=[index],
+				outputs=classifier.errors(y),
+				givens={
+					x: test_set_x[index * batch_size: (index + 1) * batch_size],
+					y: test_set_y[index * batch_size: (index + 1) * batch_size]})
+	else:
+		validate_model = theano.function(inputs=[index],
+				outputs=classifier.errors(y),
+				givens={
+					x: valid_set_x[index * batch_size:(index + 1) * batch_size],
+					y: valid_set_y[index * batch_size:(index + 1) * batch_size]})
+	
+		train_error_model = theano.function(inputs=[index],
+				outputs=classifier.errors(y),
+				givens={
+					x: train_set_x[index * batch_size:(index + 1) * batch_size],
+					y: train_set_y[index * batch_size:(index + 1) * batch_size]})
 
-	validate_model = theano.function(inputs=[index],
-			outputs=classifier.errors(y),
-			givens={
-				x: valid_set_x[index * batch_size:(index + 1) * batch_size],
-				y: valid_set_y[index * batch_size:(index + 1) * batch_size]})
+		get_train_labels = theano.function([index], classifier.ex_y,
+				givens={
+					x: train_set_x[index * batch_size: (index + 1) * batch_size]})
+
+	if mode == 'test':
+		get_test_labels = theano.function([index], classifier.ex_y,
+				givens={
+					x: test_set_x[index * batch_size: (index + 1) * batch_size],
+					classifier.W: learned_params[0],
+					classifier.b: learned_params[1]})
+
 
 	# compute the gradient of cost with respect to theta = (W,b)
-	g_W = T.grad(cost=cost, wrt=classifier.W)
-	g_b = T.grad(cost=cost, wrt=classifier.b)
+	if mode == 'train':
+		g_W = T.grad(cost=cost, wrt=classifier.W)
+		g_b = T.grad(cost=cost, wrt=classifier.b)
 
-	# specify how to update the parameters of the model as a list of
-	# (variable, update expression) pairs.
-	updates = [(classifier.W, classifier.W - learning_rate * g_W),
-			   (classifier.b, classifier.b - learning_rate * g_b)]
+		# specify how to update the parameters of the model as a list of
+		# (variable, update expression) pairs.
+		updates = [(classifier.W, classifier.W - learning_rate * g_W),
+				   (classifier.b, classifier.b - learning_rate * g_b)]
 
-	# compiling a Theano function `train_model` that returns the cost, but in
-	# the same time updates the parameter of the model based on the rules
-	# defined in `updates`
-	train_model = theano.function(inputs=[index],
-			outputs=cost,
-			updates=updates,
-			givens={
-				x: train_set_x[index * batch_size:(index + 1) * batch_size],
-				y: train_set_y[index * batch_size:(index + 1) * batch_size]})
+		# compiling a Theano function `train_model` that returns the cost, but in
+		# the same time updates the parameter of the model based on the rules
+		# defined in `updates`
+		train_model = theano.function(inputs=[index],
+				outputs=cost,
+				updates=updates,
+				givens={
+					x: train_set_x[index * batch_size:(index + 1) * batch_size],
+					y: train_set_y[index * batch_size:(index + 1) * batch_size]})
 
 	###############
 	# TRAIN MODEL #
@@ -351,7 +403,8 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 								  # found
 	improvement_threshold = 0.995  # a relative improvement of this much is
 								  # considered significant
-	validation_frequency = min(n_train_batches, patience / 2)
+	if mode == 'train':
+		validation_frequency = min(n_train_batches, patience / 2)
 								  # go through this many
 								  # minibatche before checking the network
 								  # on the validation set; in this case we
@@ -362,25 +415,63 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 	test_score = 0.
 	start_time = time.clock()
 
-	done_looping = False
+	if mode == 'train':
+		done_looping = False
+	else:
+		done_looping = True
+
 	epoch = 0
 	while (epoch < n_epochs) and (not done_looping):
 		epoch = epoch + 1
 		for minibatch_index in xrange(n_train_batches):
 
 			minibatch_avg_cost = train_model(minibatch_index)
+
 			# iteration number
 			iter = (epoch - 1) * n_train_batches + minibatch_index
 
 			if (iter + 1) % validation_frequency == 0:
+				#get_p_y_given_x = theano.function(inputs=[index], outputs=classifier.p_y_given_x,
+				#		givens={x: train_set_x[index * batch_size:(index + 1) * batch_size]})
+				#p_y_given_x = get_p_y_given_x(minibatch_index)
+				#print 'p_y_given_x (y==0):', p_y_given_x[0][0]
+				try:
+					pred_labels = variable
+				except NameError:
+					pred_labels = [[0 for j in xrange(batch_size)] for i in xrange(n_train_batches)]
+
+				for i in xrange(n_train_batches):
+					#print str(i+1), '/', str(n_valid_batches)
+					pred_labels[i] = get_train_labels(i)
+
+				print 'max predicted labels:',
+				for i in xrange(len(pred_labels)):
+					print max(pred_labels[i]),
+				print
+
+
+				## save the parameters
+				get_params = theano.function(inputs=[], outputs=[classifier.W, classifier.b])
+				save_parameters(get_params(), 'logistic_sgd')
+				params = get_params()
+				#print 'W[0:10]:', params[0][0:10], 'b[0:10]:', params[1][0:10]
+
 				# compute zero-one loss on validation set
 				validation_losses = [validate_model(i)
 									 for i in xrange(n_valid_batches)]
 				this_validation_loss = numpy.mean(validation_losses)
 
-				print('epoch %i, minibatch %i/%i, validation error %f %%' % \
+				train_losses = [train_error_model(i)
+									 for i in xrange(n_train_batches)]
+				this_train_loss = numpy.mean(train_losses)
+
+				print('epoch %i, minibatch %i/%i, validation error (MAE) %f' % \
 					(epoch, minibatch_index + 1, n_train_batches,
-					this_validation_loss * 100.))
+					this_validation_loss))
+	
+				print('epoch %i, minibatch %i/%i, training error (MAE) %f' % \
+					(epoch, minibatch_index + 1, n_train_batches,
+					this_train_loss))
 
 				# if we got the best validation score until now
 				if this_validation_loss < best_validation_loss:
@@ -392,18 +483,39 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 					best_validation_loss = this_validation_loss
 					# test it on the test set
 
-					test_losses = [test_model(i)
-								   for i in xrange(n_test_batches)]
-					test_score = numpy.mean(test_losses)
+					if mode == 'test':
+						test_losses = [test_model(i)
+									   for i in xrange(n_test_batches)]
+						test_score = numpy.mean(test_losses)
+	
+						print(('	 epoch %i, minibatch %i/%i, test error of best'
+						   ' model %f %%') %
+							(epoch, minibatch_index + 1, n_train_batches,
+							 test_score * 100.))
 
-					print(('	 epoch %i, minibatch %i/%i, test error of best'
-					   ' model %f %%') %
-						(epoch, minibatch_index + 1, n_train_batches,
-						 test_score * 100.))
+			#if patience <= iter:
+			#	done_looping = True
+			#	break
 
-			if patience <= iter:
-				done_looping = True
-				break
+
+	if mode == 'test':
+		print 'predicting the labels...'
+		pred_labels = [[0 for j in xrange(batch_size)] for i in xrange(n_test_batches)]
+		for i in xrange(n_test_batches):
+			print str(i+1), '/', str(n_test_batches)
+			pred_labels[i] = get_test_labels(i)
+
+		writer = csv.writer(file('result/logistic_sgd.csv', 'w'))
+		writer.writerow(['id', 'loss'])
+		row = 1
+
+		print 'output test labels...'
+		for i in xrange(len(pred_labels)):
+			print str(i+1), '/', str(len(pred_labels))
+			for j in xrange(len(pred_labels[i])):
+				writer.writerow([row, pred_labels[i][j]])
+				row += 1
+
 
 	end_time = time.clock()
 	print(('Optimization complete with best validation score of %f %%,'
@@ -416,4 +528,20 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=1000,
 						  ' ran for %.1fs' % ((end_time - start_time)))
 
 if __name__ == '__main__':
-	sgd_optimization_mnist()
+	argvs = sys.argv
+	if len(argvs) < 2:
+		sgd_optimization_mnist()
+	else:
+		if argvs[1] == 'test':
+			mode_ = 'test'
+		else:
+			mode_ = 'train'
+		if len(argvs) > 2:
+			if argvs[2] == 'min':
+				amount_ = 'min'
+			else:
+				amount_ = 'full'
+			sgd_optimization_mnist(mode=mode_,amount=amount_)
+		else:
+			sgd_optimization_mnist(mode=mode_)
+
