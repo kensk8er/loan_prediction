@@ -1,5 +1,6 @@
 code/*.pyc
 code/midi
+.idea
 params
 data
 html
