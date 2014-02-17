@@ -14,9 +14,7 @@ import numpy
 import theano
 import theano.tensor as T
 
-from var_dump import var_dump
 from unpickle import unpickle
-from enpickle import enpickle
 import csv
 
 from logistic_sgd import LogisticRegression, load_data, save_parameters
@@ -335,7 +333,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
 
         writer = csv.writer(file('result/mlp.csv', 'w'))
         writer.writerow(['id', 'loss'])
-        row = 105472
+        row = 105472  # first ID of test data
 
         print 'output test labels...'
         for i in xrange(len(pred_labels)):
@@ -354,16 +352,16 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
 
 
 if __name__ == '__main__':
-    argvs = sys.argv
-    if len(argvs) < 2:
+    args = sys.argv
+    if len(args) < 2:
         test_mlp()
     else:
-        if argvs[1] == 'test':
+        if args[1] == 'test':
             mode_ = 'test'
         else:
             mode_ = 'train'
-        if len(argvs) > 2:
-            if argvs[2] == 'min':
+        if len(args) > 2:
+            if args[2] == 'min':
                 amount_ = 'min'
             else:
                 amount_ = 'full'

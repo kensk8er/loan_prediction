@@ -41,8 +41,6 @@ import os
 # add a path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../util')
 
-import cPickle
-import gzip
 import time
 
 import numpy
@@ -50,7 +48,6 @@ import numpy
 import theano
 import theano.tensor as T
 
-from var_dump import var_dump
 from unpickle import unpickle
 from enpickle import enpickle
 import csv
@@ -169,12 +166,6 @@ def load_data(dataset, mode='train', amount='full', valid_num=10000):
     :param dataset: the path to the dataset (here MNIST)
     '''
 
-    #############
-    # LOAD DATA #
-    #############
-
-    # Download the MNIST dataset if it is not present
-
     print '... loading data'
 
 
@@ -183,16 +174,6 @@ def load_data(dataset, mode='train', amount='full', valid_num=10000):
         # load training and validation data
         if amount == 'full':
             print 'full training...'
-            #train_set_x = []
-            #train_set_y = []
-            #for i in xrange(1,101): # from 1 to 100 TBF: hard code
-            #	print str(i), '/', str(100)
-            #	train_set_x_batch = unpickle('data/train_set_flip_x_' + str(i) + '.pkl')
-            #	train_set_x.extend(train_set_x_batch)
-
-            #	train_set_y_batch = unpickle('data/train_set_flip_y_' + str(i) + '.pkl')
-            #	train_set_y.extend(train_set_y_batch)
-            # TBF: use relative path, not absolute path
             train_set = unpickle('data/train_simple.pkl')
 
             valid_set_x = train_set[0][-valid_num:]
@@ -203,17 +184,19 @@ def load_data(dataset, mode='train', amount='full', valid_num=10000):
             train_set_y = train_set[1][:-valid_num]
             train_set = (train_set_x, train_set_y)
 
-        #train_set_y = unpickle('data/train_set_y.pkl')
-        #train_set_y.extend(train_set_y)
-
-        #train_set = (train_set_x, train_set_y)
-
-        #train_set = unpickle('data/train_set.pkl')
-        #valid_set = unpickle('data/valid_set.pkl')
         elif amount == 'min':
             print 'min training...'
             train_set = unpickle('data/min_train_simple.pkl')
-            valid_set = unpickle('data/min_valid_simple.pkl')
+
+            valid_num = 200  # train_num: 1000 - 200 = 800
+            valid_set_x = train_set[0][-valid_num:]
+            valid_set_y = train_set[1][-valid_num:]
+            valid_set = (valid_set_x, valid_set_y)
+
+            train_set_x = train_set[0][:-valid_num]
+            train_set_y = train_set[1][:-valid_num]
+            train_set = (train_set_x, train_set_y)
+
         else:
             print 'amount shoule be either full or min'
             raise NotImplementedError()
