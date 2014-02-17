@@ -192,6 +192,7 @@ def load_data(dataset, mode='train', amount='full', valid_num=10000):
 
             #	train_set_y_batch = unpickle('data/train_set_flip_y_' + str(i) + '.pkl')
             #	train_set_y.extend(train_set_y_batch)
+            # TBF: use relative path, not absolute path
             train_set = unpickle('data/train_simple.pkl')
 
             valid_set_x = train_set[0][-valid_num:]

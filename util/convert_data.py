@@ -6,110 +6,110 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../util')
 
 import csv
-from unpickle import unpickle
+#from unpickle import unpickle
 from pickle import pickle
 import numpy
 
 
 def main(filename, mode):
 
-	# normalize each value between 0 and 1
-	print 'normalizing the data...'
-	csvfile = open('data/' + filename + '.csv')
-	row_num = 0
+    # normalize each value between 0 and 1
+    print 'normalizing the data...'
+    csvfile = open('data/' + filename + '.csv')
+    row_num = 0
 
-	for row in csv.reader(csvfile):
-		row_num += 1
-		print "\r", row_num,
+    for row in csv.reader(csvfile):
+        row_num += 1
+        print "\r", row_num,
 
-		if row_num == 1: # initialize
-			min_val = [0 for i in xrange(len(row) - 1)] # 1-st column is an ID of data (irrelevant)
-			max_val = [0 for i in xrange(len(row) - 1)] # 1-st column is an ID of data (irrelevant)
-		elif row_num == 2: # first assignment
-			for column in xrange(len(row) - 1):
-				min_val[column] = float(row[column + 1])
-				max_val[column] = float(row[column + 1])
-		else:
-			for column in xrange(len(row) - 1):
-				if min_val[column] > float(row[column + 1]):
-					min_val[column] = float(row[column + 1])
+        if row_num == 1:  # initialize
+            min_val = [0 for i in xrange(len(row) - 1)]  # 1-st column is an ID of data (irrelevant)
+            max_val = [0 for i in xrange(len(row) - 1)]  # 1-st column is an ID of data (irrelevant)
+        elif row_num == 2:  # first assignment
+            for column in xrange(len(row) - 1):
+                min_val[column] = float(row[column + 1])
+                max_val[column] = float(row[column + 1])
+        else:
+            for column in xrange(len(row) - 1):
+                if min_val[column] > float(row[column + 1]):
+                    min_val[column] = float(row[column + 1])
 
-				if max_val[column] < float(row[column + 1]):
-					max_val[column] = float(row[column + 1])
+                if max_val[column] < float(row[column + 1]):
+                    max_val[column] = float(row[column + 1])
 
-	row_len = row_num
+    row_len = row_num
 
-	if mode != 'test':
-		train_set_x = []
-		train_set_y = []
-		
-		print 'converting the data...'
-		csvfile = open('data/' + filename + '.csv')
-		row_num = 0
+    if mode != 'test':
+        train_set_x = []
+        train_set_y = []
 
-		for row in csv.reader(csvfile):
-			row_num += 1
+        print 'converting the data...'
+        csvfile = open('data/' + filename + '.csv')
+        row_num = 0
 
-			print row_num, '/', row_len
+        for row in csv.reader(csvfile):
+            row_num += 1
 
-			if row_num != 1:
-				features = row[1 : len(row) - 1] # 1-st column is an ID of data (irrelevant)
+            print row_num, '/', row_len
 
-				for i in xrange(len(features)):
-					if max_val[i] != min_val[i]:
-						features[i] = (float(features[i]) - min_val[i]) / (max_val[i] - min_val[i])
-					else:
-						features[i] = 0.
+            if row_num != 1:
+                features = row[1: len(row) - 1]  # 1-st column is an ID of data (irrelevant)
 
-				train_set_x.append(features)
+                for i in xrange(len(features)):
+                    if max_val[i] != min_val[i]:
+                        features[i] = (float(features[i]) - min_val[i]) / (max_val[i] - min_val[i])
+                    else:
+                        features[i] = 0.
 
-				loss = row[-1]
-				train_set_y.append(int(loss))
+                train_set_x.append(features)
 
-		train_set_x = numpy.asarray(train_set_x, dtype=numpy.float64)
-		train_set = (train_set_x, train_set_y)
+                loss = row[-1]
+                train_set_y.append(int(loss))
 
-		print 'saving the data...'
-		pickle(train_set, 'data/' + filename + '.pkl')
-	else:
-		print 'converting the data...'
-		csvfile = open('data/' + filename + '.csv')
-		row_num = 0
+        train_set_x = numpy.asarray(train_set_x, dtype=numpy.float64)
+        train_set = (train_set_x, train_set_y)
 
-		## convert test data
-		test_set = []
-		
-		row_num = 0
+        print 'saving the data...'
+        pickle(train_set, 'data/' + filename + '.pkl')
+    else:
+        print 'converting the data...'
+        csvfile = open('data/' + filename + '.csv')
+        row_num = 0
 
-		for row in csv.reader(csvfile):
-			row_num += 1
+        ## convert test data
+        test_set = []
 
-			print row_num, '/', row_len
+        row_num = 0
 
-			if row_num != 1:
-				features = row[1 : len(row)] # 1-st column is an ID of data (irrelevant)
+        for row in csv.reader(csvfile):
+            row_num += 1
 
-				for i in xrange(len(features)):
-					if max_val[i] != min_val[i]:
-						features[i] = (float(features[i]) - min_val[i]) / (max_val[i] - min_val[i])
-					else:
-						features[i] = 0.
+            print row_num, '/', row_len
 
-				test_set.append(features)
+            if row_num != 1:
+                features = row[1: len(row)]  # 1-st column is an ID of data (irrelevant)
 
-		test_set = numpy.asarray(test_set, dtype=numpy.float64)
+                for i in xrange(len(features)):
+                    if max_val[i] != min_val[i]:
+                        features[i] = (float(features[i]) - min_val[i]) / (max_val[i] - min_val[i])
+                    else:
+                        features[i] = 0.
 
-		print 'saving the data...'
-		pickle(test_set, 'data/' + filename + '.pkl')
-	
-	csvfile.close()
+                test_set.append(features)
+
+        test_set = numpy.asarray(test_set, dtype=numpy.float64)
+
+        print 'saving the data...'
+        pickle(test_set, 'data/' + filename + '.pkl')
+
+    csvfile.close()
 
 
 if __name__ == '__main__':
-	argvs = sys.argv
-	if len(argvs) > 2:
-		filename = argvs[1]
-		mode = argvs[2]
-		main(filename, mode)
-	else:
-		print 'input file name and mode as an argument!'
+    argvs = sys.argv
+    if len(argvs) > 2:
+        filename = argvs[1]
+        mode = argvs[2]
+        main(filename, mode)
+    else:
+        print 'input file name and mode as an argument!'
