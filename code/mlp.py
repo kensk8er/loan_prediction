@@ -161,7 +161,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
                                            x: train_set_x[index * batch_size: (index + 1) * batch_size]})
 
     if mode == 'test':
-        get_test_labels = theano.function([index], classifier.log_regression_layer.ex_y,
+        get_test_labels = theano.function([index], classifier.log_regression_layer.y_pred,
                                           givens={
                                           x: test_set_x[index * test_batch_size: (index + 1) * test_batch_size],
                                           classifier.hidden_layer_1.W: learned_params[0],
@@ -213,7 +213,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
     print '... training'
 
     # early-stopping parameters
-    patience = 100000  # look as this many examples regardless
+    patience = 1000000  # look as this many examples regardless
     patience_increase = 2  # wait this much longer when a new best is
     # found
     improvement_threshold = 0.999  # a relative improvement of this much is
@@ -353,4 +353,3 @@ if __name__ == '__main__':
             test_mlp(mode=mode_, amount=amount_)
         else:
             test_mlp(mode=mode_)
-

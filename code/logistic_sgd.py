@@ -152,10 +152,10 @@ class LogisticRegression(object):
             # represents a mistake in prediction
 
             # binary error
-            #return T.mean(T.neq(self.y_pred, y))
+            return T.mean(T.neq(self.y_pred, y))
 
             # Mean-absolute error
-            return T.mean(T.abs_(self.ex_y - y))
+            #return T.mean(T.abs_(self.ex_y - y))
         else:
             raise NotImplementedError()
 
