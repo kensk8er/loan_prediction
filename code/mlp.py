@@ -63,46 +63,32 @@ class HiddenLayer(object):
 
 
 class MLP(object):
-    def __init__(self, rng, input, n_in, n_hidden, n_out):
-        # Since we are dealing with a one hidden layer MLP, this will translate
-        # into a HiddenLayer with a tanh activation function connected to the
-        # LogisticRegression layer; the activation function can be replaced by
-        # sigmoid or any other nonlinear function
-        self.hiddenLayer = HiddenLayer(rng=rng, input=input,
-                                       n_in=n_in, n_out=n_hidden,
-                                       activation=T.tanh)
+    def __init__(self, rng, input, n_in, n_hidden_1, n_hidden_2, n_out):
 
-        # The logistic regression layer gets as input the hidden units
-        # of the hidden layer
-        self.logRegressionLayer = LogisticRegression(
-            input=self.hiddenLayer.output,
-            n_in=n_hidden,
-            n_out=n_out)
+        self.hidden_layer_1 = HiddenLayer(rng=rng, input=input,
+                                          n_in=n_in, n_out=n_hidden_1,
+                                          activation=T.tanh)
 
-        # L1 norm ; one regularization option is to enforce L1 norm to
-        # be small
-        self.L1 = abs(self.hiddenLayer.W).sum() \
-                  + abs(self.logRegressionLayer.W).sum()
+        self.hidden_layer_2 = HiddenLayer(rng=rng, input=self.hidden_layer_1.output,
+                                          n_in=n_hidden_1, n_out=n_hidden_2,
+                                          activation=T.tanh)
 
-        # square of L2 norm ; one regularization option is to enforce
-        # square of L2 norm to be small
-        self.L2_sqr = (self.hiddenLayer.W ** 2).sum() \
-                      + (self.logRegressionLayer.W ** 2).sum()
+        self.log_regression_layer = LogisticRegression(input=self.hidden_layer_2.output,
+                                                       n_in=n_hidden_2,
+                                                       n_out=n_out)
 
-        # negative log likelihood of the MLP is given by the negative
-        # log likelihood of the output of the model, computed in the
-        # logistic regression layer
-        self.negative_log_likelihood = self.logRegressionLayer.negative_log_likelihood
-        # same holds for the function computing the number of errors
-        self.errors = self.logRegressionLayer.errors
+        self.L1 = abs(self.hidden_layer_1.W).sum() + abs(self.hidden_layer_2.W).sum() + abs(self.log_regression_layer.W).sum()
 
-        # the parameters of the model are the parameters of the two layer it is
-        # made out of
-        self.params = self.hiddenLayer.params + self.logRegressionLayer.params
+        self.L2_sqr = (self.hidden_layer_1.W ** 2).sum() + (self.hidden_layer_2.W ** 2).sum() + (self.log_regression_layer.W ** 2).sum()
+
+        self.negative_log_likelihood = self.log_regression_layer.negative_log_likelihood
+        self.errors = self.log_regression_layer.errors
+
+        self.params = self.hidden_layer_1.params + self.hidden_layer_2.params + self.log_regression_layer.params
 
 
-def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
-             dataset='cifar-10-batches-py', batch_size=20, test_batch_size=32, n_hidden=700, mode='train',
+def test_mlp(learning_rate=0.1, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
+             dataset='cifar-10-batches-py', batch_size=20, test_batch_size=32, n_hidden_1=1000, n_hidden_2=1000, mode='train',
              amount='full', valid_num=10000):  #batch_size: 32
 
     datasets = load_data(dataset, mode, amount, valid_num)
@@ -135,7 +121,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
 
     # construct the MLP class
     classifier = MLP(rng=rng, input=x, n_in=769,
-                     n_hidden=n_hidden, n_out=101)
+                     n_hidden_1=n_hidden_1, n_hidden_2=n_hidden_2, n_out=101)
 
     ## load the saved parameters
     if mode == 'test':
@@ -170,19 +156,18 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
                                             x: train_set_x[index * batch_size:(index + 1) * batch_size],
                                             y: train_set_y[index * batch_size:(index + 1) * batch_size]})
 
-        get_train_labels = theano.function([index], classifier.logRegressionLayer.ex_y,
+        get_train_labels = theano.function([index], classifier.log_regression_layer.ex_y,
                                            givens={
                                            x: train_set_x[index * batch_size: (index + 1) * batch_size]})
 
     if mode == 'test':
-        get_test_labels = theano.function([index], classifier.logRegressionLayer.ex_y,
+        get_test_labels = theano.function([index], classifier.log_regression_layer.ex_y,
                                           givens={
                                           x: test_set_x[index * test_batch_size: (index + 1) * test_batch_size],
-                                          classifier.hiddenLayer.W: learned_params[0],
-                                          classifier.hiddenLayer.b: learned_params[1],
-                                          classifier.logRegressionLayer.W: learned_params[2],
-                                          classifier.logRegressionLayer.b: learned_params[3]})
-
+                                          classifier.hidden_layer_1.W: learned_params[0],
+                                          classifier.hidden_layer_1.b: learned_params[1],
+                                          classifier.log_regression_layer.W: learned_params[2],
+                                          classifier.log_regression_layer.b: learned_params[3]})
 
     # compute the gradient of cost with respect to theta (sotred in params)
     # the resulting gradients will be stored in a list gparams
@@ -253,7 +238,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
         done_looping = True
 
     while (epoch < n_epochs) and (not done_looping):
-        epoch = epoch + 1
+        epoch += 1
         for minibatch_index in xrange(n_train_batches):
 
             minibatch_avg_cost = train_model(minibatch_index)
@@ -271,7 +256,7 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
                 this_train_loss = numpy.mean(train_losses)
 
                 try:
-                    pred_labels = variable
+                    pred_labels = pred_labels
                 except NameError:
                     pred_labels = [[0 for j in xrange(batch_size)] for i in xrange(n_train_batches)]
 
@@ -298,9 +283,9 @@ def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
                 # if we got the best validation score until now
                 if this_validation_loss < best_validation_loss:
                     ## save the parameters
-                    get_params = theano.function(inputs=[], outputs=[classifier.hiddenLayer.W, classifier.hiddenLayer.b,
-                                                                     classifier.logRegressionLayer.W,
-                                                                     classifier.logRegressionLayer.b])
+                    get_params = theano.function(inputs=[], outputs=[classifier.hidden_layer_1.W, classifier.hidden_layer_1.b,
+                                                                     classifier.log_regression_layer.W,
+                                                                     classifier.log_regression_layer.b])
                     save_parameters(get_params(), 'mlp')
 
                     #improve patience if loss improvement is good enough

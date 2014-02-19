@@ -25,25 +25,27 @@ def normalize(file_names):
             row_num += 1
             print '\r', row_num,
 
-            if row_num >= 2:  # first row is the name of columns
-                try:
-                    if isinstance(min_val, list) and isinstance(max_val, list):
-                        # compare values if already defined
+            # obtaining normalizing factors only from training data
+            if file_name == file_names[0]:
+                if row_num >= 2:  # first row is the name of columns
+                    try:
+                        if isinstance(min_val, list) and isinstance(max_val, list):
+                            # compare values if already defined
+                            for column in xrange(len(row) - 1):
+                                if min_val[column] > float(row[column + 1]):
+                                    min_val[column] = float(row[column + 1])
+
+                                if max_val[column] < float(row[column + 1]):
+                                    max_val[column] = float(row[column + 1])
+                    except NameError:
+                        # initialize min_val and max_val if not defined
+                        min_val = [0 for i in xrange(len(row) - 1)]  # 1-st column is an ID of data (irrelevant)
+                        max_val = [0 for i in xrange(len(row) - 1)]  # 1-st column is an ID of data (irrelevant)
+
+                        # first assignment
                         for column in xrange(len(row) - 1):
-                            if min_val[column] > float(row[column + 1]):
-                                min_val[column] = float(row[column + 1])
-
-                            if max_val[column] < float(row[column + 1]):
-                                max_val[column] = float(row[column + 1])
-                except NameError:
-                    # initialize min_val and max_val if not defined
-                    min_val = [0 for i in xrange(len(row) - 1)]  # 1-st column is an ID of data (irrelevant)
-                    max_val = [0 for i in xrange(len(row) - 1)]  # 1-st column is an ID of data (irrelevant)
-
-                    # first assignment
-                    for column in xrange(len(row) - 1):
-                        min_val[column] = float(row[column + 1])
-                        max_val[column] = float(row[column + 1])
+                            min_val[column] = float(row[column + 1])
+                            max_val[column] = float(row[column + 1])
 
         csvfile.close()
         print
@@ -108,12 +110,12 @@ def test(file_name, max_val, min_val, row_len):
         if row_num != 1:
             features = row[1: len(row)]  # 1-st column is an id of data (irrelevant)
 
-            for i in xrange(len(features)):
-                if max_val[i] != min_val[i]:
-                    features[i] = (float(features[i]) - min_val[i]) / (max_val[i] - min_val[i])
+            for column in xrange(len(features)):
+                if max_val[column] != min_val[column]:
+                    features[column] = (float(features[column]) - min_val[column]) / (max_val[column] - min_val[column])
                 else:
                     # TBF: if max_val == min_val, that feature is no use for prediction, thus better removing the column
-                    features[i] = 0.
+                    features[column] = 0.
 
             test_set.append(features)
 
@@ -130,7 +132,7 @@ if __name__ == '__main__':
     args = sys.argv
 
     if len(args) > 2:
-        file_names = (args[1],args[2])
+        file_names = (args[1], args[2])
 
         # calculate normalize parameters
         max_val, min_val, row_lens = normalize(file_names)
