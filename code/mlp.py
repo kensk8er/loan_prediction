@@ -87,8 +87,8 @@ class MLP(object):
         self.params = self.hidden_layer_1.params + self.hidden_layer_2.params + self.log_regression_layer.params
 
 
-def test_mlp(learning_rate=0.1, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
-             dataset='cifar-10-batches-py', batch_size=20, test_batch_size=32, n_hidden_1=1000, n_hidden_2=1000, mode='train',
+def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
+             dataset='cifar-10-batches-py', batch_size=1, test_batch_size=32, n_hidden_1=500, n_hidden_2=500, mode='train',
              amount='full', valid_num=10000):  #batch_size: 32
 
     datasets = load_data(dataset, mode, amount, valid_num)
@@ -121,7 +121,7 @@ def test_mlp(learning_rate=0.1, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
 
     # construct the MLP class
     classifier = MLP(rng=rng, input=x, n_in=769,
-                     n_hidden_1=n_hidden_1, n_hidden_2=n_hidden_2, n_out=101)
+                     n_hidden_1=n_hidden_1, n_hidden_2=n_hidden_2, n_out=2)
 
     ## load the saved parameters
     if mode == 'test':

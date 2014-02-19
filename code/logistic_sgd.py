@@ -174,7 +174,7 @@ def load_data(dataset, mode='train', amount='full', valid_num=10000):
         # load training and validation data
         if amount == 'full':
             print 'full training...'
-            train_set = unpickle('data/train_simple.pkl')
+            train_set = unpickle('data/train_simple_binary.pkl')
 
             valid_set_x = train_set[0][-valid_num:]
             valid_set_y = train_set[1][-valid_num:]
