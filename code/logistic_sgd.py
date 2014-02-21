@@ -174,8 +174,9 @@ def load_data(dataset, mode='train', amount='full', valid_num=10000):
         # load training and validation data
         if amount == 'full':
             print 'full training...'
-            train_set = unpickle('data/train_simple_binary.pkl')
+            train_set = unpickle('data/train_f528_f274.pkl')
 
+            # TBF: sampling of validation set should be randomized
             valid_set_x = train_set[0][-valid_num:]
             valid_set_y = train_set[1][-valid_num:]
             valid_set = (valid_set_x, valid_set_y)
@@ -265,7 +266,7 @@ def save_parameters(params, file_name):
     enpickle(params, 'params/' + file_name + '.pkl')
 
 
-def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
+def sgd_optimization_mnist(learning_rate=0.1, n_epochs=100000,
                            dataset='cifar-10-batches-py',
                            batch_size=1, mode='train', amount='full', valid_num=10000):
     """
@@ -314,7 +315,7 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
 
     # construct the logistic regression class
     # Each CIFAR-10 image has size 32*32*3 (RGB image)
-    classifier = LogisticRegression(input=x, n_in=769, n_out=101)
+    classifier = LogisticRegression(input=x, n_in=1, n_out=2)
 
     ## load the saved parameters
     if mode == 'test':
@@ -350,7 +351,7 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
                                            x: train_set_x[index * batch_size: (index + 1) * batch_size]})
 
     if mode == 'test':
-        get_test_labels = theano.function([index], classifier.ex_y,
+        get_test_labels = theano.function([index], classifier.y_pred,
                                           givens={
                                           x: test_set_x[index * batch_size: (index + 1) * batch_size],
                                           classifier.W: learned_params[0],
@@ -382,7 +383,7 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
     ###############
     print '... training the model'
     # early-stopping parameters
-    patience = 5000  # look as this many examples regardless
+    patience = 5000000  # look as this many examples regardless
     patience_increase = 2  # wait this much longer when a new best is
     # found
     improvement_threshold = 0.995  # a relative improvement of this much is
@@ -419,26 +420,21 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
                 #		givens={x: train_set_x[index * batch_size:(index + 1) * batch_size]})
                 #p_y_given_x = get_p_y_given_x(minibatch_index)
                 #print 'p_y_given_x (y==0):', p_y_given_x[0][0]
-                try:
-                    pred_labels = variable
-                except NameError:
-                    pred_labels = [[0 for j in xrange(batch_size)] for i in xrange(n_train_batches)]
+                # try:
+                #     pred_labels = variable
+                # except NameError:
+                #     pred_labels = [[0 for j in xrange(batch_size)] for i in xrange(n_train_batches)]
 
-                for i in xrange(n_train_batches):
-                    #print str(i+1), '/', str(n_valid_batches)
-                    pred_labels[i] = get_train_labels(i)
+                # for i in xrange(n_train_batches):
+                #     #print str(i+1), '/', str(n_valid_batches)
+                #     pred_labels[i] = get_train_labels(i)
 
-                print 'max predicted labels:',
-                for i in xrange(len(pred_labels)):
-                    print max(pred_labels[i]),
-                print
+                # print 'max predicted labels:',
+                # for i in xrange(len(pred_labels)):
+                #     print max(pred_labels[i]),
+                # print
 
 
-                ## save the parameters
-                get_params = theano.function(inputs=[], outputs=[classifier.W, classifier.b])
-                save_parameters(get_params(), 'logistic_sgd')
-                params = get_params()
-                #print 'W[0:10]:', params[0][0:10], 'b[0:10]:', params[1][0:10]
 
                 # compute zero-one loss on validation set
                 validation_losses = [validate_model(i)
@@ -476,6 +472,12 @@ def sgd_optimization_mnist(learning_rate=0.01, n_epochs=100000,
                                ' model %f %%') %
                               (epoch, minibatch_index + 1, n_train_batches,
                                test_score * 100.))
+
+                    ## save the parameters
+                    get_params = theano.function(inputs=[], outputs=[classifier.W, classifier.b])
+                    save_parameters(get_params(), 'logistic_sgd')
+                    #params = get_params()
+                    #print 'W[0:10]:', params[0][0:10], 'b[0:10]:', params[1][0:10]
 
                     #if patience <= iter:
                     #	done_looping = True

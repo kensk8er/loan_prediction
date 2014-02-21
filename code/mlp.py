@@ -88,7 +88,7 @@ class MLP(object):
 
 
 def test_mlp(learning_rate=0.01, L1_reg=0.00, L2_reg=0.0001, n_epochs=100000,
-             dataset='cifar-10-batches-py', batch_size=1, test_batch_size=32, n_hidden_1=500, n_hidden_2=500, mode='train',
+             dataset='cifar-10-batches-py', batch_size=32, test_batch_size=32, n_hidden_1=500, n_hidden_2=500, mode='train',
              amount='full', valid_num=10000):  #batch_size: 32
 
     datasets = load_data(dataset, mode, amount, valid_num)
