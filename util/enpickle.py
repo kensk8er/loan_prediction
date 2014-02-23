@@ -6,3 +6,14 @@ def enpickle(data, file):
     fo = open(file, 'w')
     cPickle.dump(data, fo, protocol=1)
     fo.close()
+
+
+
+
+
+
+
+
+
+
+
