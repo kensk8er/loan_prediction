@@ -2,7 +2,6 @@
 
 import pandas as pd
 import numpy as np
-import cPickle
 from sklearn import preprocessing
 from sklearn.svm import LinearSVC
 import scipy.stats as stats
@@ -16,8 +15,7 @@ def test_data(filename):
     col_mean = stats.nanmean(X, axis=0)
     ids = np.where(np.isnan(X))
     X[ids] = np.take(col_mean, ids[1])
-    #data = np.asarray(X[:, 1:-3], dtype=float)  # why 1:-3?? -> last two features are use less. the first column is ID.
-    data = np.asarray(X, dtype=float)  # why 1:-3?? -> last two features are use less. the first column is ID.
+    data = np.asarray(X[:, 1:], dtype=float)  # why 1:-3?? -> last two features are use less. the first column is ID.
 
     return data
 
@@ -31,7 +29,7 @@ def train_data(filename):
     X[ids] = np.take(col_mean, ids[1])  # ids[0]: row index, ids[1]: column index
 
     labels = np.asarray(X[:, -1], dtype=float)
-    data = np.asarray(X[:, 0:-1], dtype=float)
+    data = np.asarray(X[:, 1:-1], dtype=float)
     return data, labels
 
 
@@ -54,6 +52,7 @@ def create_sub(classifier, train_data, labels, test_data):
         print 'prepare all zero labels...'
         predicts_orig = np.asarray([0] * test_data.shape[0])  # np.copy(y_test)
 
+        # perhaps you can delete these lines
         labels_p = []
 
         for i in xrange(len(labels)):
@@ -65,23 +64,25 @@ def create_sub(classifier, train_data, labels, test_data):
         labels_p = np.asarray(labels_p)
         y_train_p = labels_p
 
+        # use already classified entries
         #print 'select features using Linear SVC...'
         #linear_svc = LinearSVC(C=0.01, penalty="l1", dual=False, verbose=2)  # C: Penalty parameter C of the error term
         #linear_svc.fit(x_train, y_train_p)
         #x_train_p = linear_svc.transform(x_train)  # transform(X[, threshold])	Reduce X to its most important features.
         #x_test_p = linear_svc.transform(x_test)
-        x_train_p = x_train
-        x_test_p = x_test
 
-        print 'classify default entries using logistic regression...'
-        classifier.fit(x_train_p, y_train_p)
-        predicts_p = classifier.predict(x_test_p)
+        #print 'classify default entries using logistic regression...'
+        #classifier.fit(x_train_p, y_train_p)
+        #predicts_p = classifier.predict(x_test_p)
+        predicts_p = pd.read_csv("data/test_pred_bin.csv")
 
         none_zero_train = np.where(y_train_p > 0)[0]
-        none_zero_test = np.where(predicts_p == 1)[0]
+        #none_zero_test = np.where(predicts_p > 0)[0]
+        none_zero_test = np.where(predicts_p['loss'] == True)[0]
 
         zero_train = np.where(y_train_p == 0)[0]
-        zero_test = np.where(predicts_p == 0)[0]
+        #zero_test = np.where(predicts_p == 0)[0]
+        zero_test = np.where(predicts_p['loss'] == False)[0]
 
         # use only train data which are classified as non zero loss
         x_train_p = x_train[none_zero_train]
@@ -99,28 +100,49 @@ def create_sub(classifier, train_data, labels, test_data):
         predicts_orig[zero_test] = 0
 
         print 'writing result...'
-        np.savetxt('result/predictions_kunkun.csv', predicts_orig, delimiter=',', fmt='%d')
+        np.savetxt('result/predictions.csv', predicts_orig, delimiter=',', fmt='%d')
 
 
 if __name__ == '__main__':
     print 'loading test data...'
-    X_test = test_data('data/finaltest(1,274,527,528).csv')
+    test_x= test_data('data/test_20_best_classify.csv')
 
     print 'loading train data...'
-    X, labels = train_data('data/finaltrain(1,274,527,528,loss).csv')
+    train_x, train_y = train_data('data/train_20_best_classify.csv')
 
     print 'define logistic regression...'
-    classifier = lm.LogisticRegression(penalty='l2', dual=True, tol=0.0001,
-                                       C=1.0, fit_intercept=True, intercept_scaling=1.0,
-                                       class_weight=None, random_state=None)
+    classifier = lm.LogisticRegression(penalty='l2', dual=False, tol=0.00001,
+                                       C=10000, fit_intercept=True, intercept_scaling=1.0, # C=10000
+                                       random_state=None, class_weight={0: 0.135, 1: 0.865})
+    #classifier = lm.LinearRegression(fit_intercept=True, normalize=False)
 
     print 'pre-processing train data...'
-    scaler = preprocessing.StandardScaler().fit(X)
-    X = scaler.transform(X)
+    scalar = preprocessing.StandardScaler().fit(train_x)
+    train_x = scalar.transform(train_x)
     #X = preprocessing.scale(X)
 
     print 'pre-processing test data...'
+    test_x = scalar.transform(test_x)
     #X_test = preprocessing.scale(X_test)
-    X_test = scaler.transform(X_test)
+    #X_test = scalar.transform(X_test)
 
-    create_sub(classifier, X, labels, X_test)
+    #create_sub(classifier, X, labels, X_test)
+
+    # perhaps you can delete these lines
+    labels_p = []
+
+    for i in xrange(len(train_y)):
+        if train_y[i] > 0:
+            labels_p.append(1)
+        else:
+            labels_p.append(0)
+
+    labels_p = np.asarray(labels_p, dtype=int)
+    train_y_p = labels_p
+
+    print 'doing logistic regression...'
+    classifier.fit(train_x, train_y_p)
+    print classifier.score(train_x, train_y_p)
+
+    predicts = classifier.predict(test_x)
+    np.savetxt('result/classification.csv', predicts, delimiter=',', fmt='%s')
