@@ -72,11 +72,18 @@ def do_regression(classifier, data, mode):
 
     # grouping loss values (black magic lol)
     scalar = 10.
+    #for i in xrange(len(y_train_default)):
+    #    if y_train_default[i] <= 10:
+    #        y_train_default[i] = 4 * scalar
+    #    else:
+    #        y_train_default[i] = 15 * scalar
     for i in xrange(len(y_train_default)):
         if y_train_default[i] <= 10:
-            y_train_default[i] = 4 * scalar
+            y_train_default[i] = y_train_default[i] * 0.5 * scalar
+        elif y_train_default[i] < 100:
+            y_train_default[i] = 11 * 0.5 * scalar
         else:
-            y_train_default[i] = 15 * scalar
+            y_train_default[i] = 10 * scalar
 
     #print count
 
@@ -156,8 +163,8 @@ if __name__ == '__main__':
     print 'define logistic regression...'
     classifier = lm.LogisticRegression(penalty='l2', dual=False, tol=0.00001,
                                        C=0.8, fit_intercept=True, intercept_scaling=1.0,
-                                       #random_state=None, class_weight={5: 0.012, 10: 0.035, 15: 0.038, 20: 0.051, 25: 0.064, 30: 0.077, 35: 0.09, 40: 0.1, 45: 0.11, 50: 0.13, 55: 0.14, 100: 0.15})
-                                       random_state=None, class_weight=None)
+                                       random_state=None, class_weight={5: 0.012, 10: 0.035, 15: 0.038, 20: 0.051, 25: 0.064, 30: 0.077, 35: 0.09, 40: 0.1, 45: 0.11, 50: 0.13, 55: 0.14, 100: 0.15})
+                                       #random_state=None, class_weight=None)
 
     print 'pre-processing train data...'
     scalar = preprocessing.StandardScaler().fit(X)
