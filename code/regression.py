@@ -1,4 +1,5 @@
 #!/usr/local/bin/python
+from numpy.ma import mean
 
 import pandas as pd
 import numpy as np
@@ -39,14 +40,14 @@ def do_regression(classifier, data, mode):
     if mode == 'test':
         x_train = data[0]
         y_train = np.asarray(map(int, data[1]))
-        x_test = data[1]
+        x_test = data[2]
     else:
         x_train = data[0]
         y_train = np.asarray(map(int, data[1]))
 
     if mode == 'test':
         predicts_orig = np.asarray([0] * x_test.shape[0])
-        predicted_bin = pd.read_csv("data/test_pred_bin_hansong.csv")
+        predicted_bin = pd.read_csv("result/classification.csv")
 
     # possibly you can try using train data which are classified as default by your classification model??
     none_zero_train = np.where(y_train > 0)[0]
@@ -70,17 +71,12 @@ def do_regression(classifier, data, mode):
     y_train_default = y_train[none_zero_train]
 
     # grouping loss values (black magic lol)
-    count = [0 for i in range(12)]
+    scalar = 10.
     for i in xrange(len(y_train_default)):
         if y_train_default[i] <= 10:
-            count[y_train_default[i]-1] += 1
-            y_train_default[i] = y_train_default[i] * 0.5 * 10
-        elif y_train_default[i] < 100:
-            count[10] += 1
-            y_train_default[i] = 11 * 0.5 * 10
+            y_train_default[i] = 4 * scalar
         else:
-            count[11] += 1
-            y_train_default[i] = 10 * 10
+            y_train_default[i] = 15 * scalar
 
     #print count
 
@@ -99,7 +95,7 @@ def do_regression(classifier, data, mode):
 
         report = []
         for i in xrange(len(predicts_orig)):
-            report.append(float(predicts_orig[i]) / 10.)
+            report.append(float(predicts_orig[i]) / scalar)
 
         print 'writing result...'
         np.savetxt('result/predictions.csv', report, delimiter=',', fmt='%s')
@@ -111,7 +107,34 @@ def do_regression(classifier, data, mode):
             classifier, x_train_default, y_train_default, cv=cv, scoring='accuracy')
 
         print("Accuracy: %0.8f (+/- %0.8f)" % (scores.mean(), scores.std() * 2))
-        # my best: Accuracy: 0.27609578 (+/- 0.00854811) (5 fold cross validation)
+        # my best: Accuracy: 0.32065953 (+/- 0.00854811) (5 fold cross validation)
+
+        classifier.fit(x_train_default, y_train_default)
+        y_predicts = classifier.predict(x_train_default)
+        y_true = y_train[none_zero_train]
+        error = 0.
+        upper_fit = 0
+        under_fit = 0
+        count = {}
+
+        for i in xrange(len(none_zero_train)):
+            error += abs(y_true[i] - y_predicts[i] / scalar)
+            count[y_predicts[i] / scalar] = count.get(y_predicts[i] / scalar, 0) + 1
+
+            if y_true[i] > y_predicts[i]:
+                under_fit += 1
+            elif y_true[i] < y_predicts[i]:
+                upper_fit += 1
+
+
+        local_MAE = error / len(y_true)
+        global_MAE = error / len(y_train)
+
+        print("local MAE: %0.8f" % local_MAE)
+        print("global MAE: %0.8f" % global_MAE)
+        print 'upper fit:', upper_fit, 'under fit:', under_fit
+        print 'average prediction', mean(y_predicts) / scalar
+        print count
 
 if __name__ == '__main__':
 
@@ -125,15 +148,16 @@ if __name__ == '__main__':
 
     if mode == 'test':
         print 'loading test data...'
-        X_test = test_data('data/test_best_30.csv')
+        X_test = test_data('data/test_default.csv')
 
     print 'loading train data...'
-    X, labels = train_data('data/train_best_30.csv')
+    X, labels = train_data('data/train_default.csv')
 
     print 'define logistic regression...'
-    classifier = lm.LogisticRegression(penalty='l2', dual=True, tol=0.00001,
+    classifier = lm.LogisticRegression(penalty='l2', dual=False, tol=0.00001,
                                        C=0.8, fit_intercept=True, intercept_scaling=1.0,
-                                       random_state=None, class_weight={5: 0.012, 10: 0.035, 15: 0.038, 20: 0.051, 25: 0.064, 30: 0.077, 35: 0.09, 40: 0.1, 45: 0.11, 50: 0.13, 55: 0.14, 100: 0.15})
+                                       #random_state=None, class_weight={5: 0.012, 10: 0.035, 15: 0.038, 20: 0.051, 25: 0.064, 30: 0.077, 35: 0.09, 40: 0.1, 45: 0.11, 50: 0.13, 55: 0.14, 100: 0.15})
+                                       random_state=None, class_weight=None)
 
     print 'pre-processing train data...'
     scalar = preprocessing.StandardScaler().fit(X)

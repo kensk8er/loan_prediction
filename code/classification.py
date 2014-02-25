@@ -1,9 +1,11 @@
 #!/usr/local/bin/python
+from numpy.ma import mean
 
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing, cross_validation
 from sklearn.svm import LinearSVC
+from sklearn.svm import SVC
 import scipy.stats as stats
 import sklearn.linear_model as lm
 import sys
@@ -46,15 +48,17 @@ if __name__ == '__main__':
 
     if mode == 'test':
         print 'loading test data...'
-        test_x = test_data('data/test_20_best_classify.csv')
+        test_x = test_data('data/test_classify.csv')
 
     print 'loading train data...'
-    train_x, train_y = train_data('data/train_20_best_classify.csv')
+    train_x, train_y = train_data('data/train_classify.csv')
 
     print 'defining logistic regression...'
-    classifier = lm.LogisticRegression(penalty='l2', dual=False, tol=0.00001,
-                                       C=10000, fit_intercept=True, intercept_scaling=1.0, # C=10000
-                                       random_state=None, class_weight={0: 0.135, 1: 0.865})
+    #classifier = lm.LogisticRegression(penalty='l2', dual=False, tol=0.00001,
+    #                                   C=10000, fit_intercept=True, intercept_scaling=1.0, # C=10000
+    #                                   random_state=None, class_weight={0: 0.135, 1: 0.865})
+    classifier = SVC(tol=0.01, C=10,
+                     random_state=None, class_weight={0: 0.135, 1: 0.865})
 
     print 'pre-processing train data...'
     scalar = preprocessing.StandardScaler().fit(train_x)
@@ -83,6 +87,8 @@ if __name__ == '__main__':
         print 'accuracy on the training data', accuracy
 
         predicts = classifier.predict(test_x)
+
+        print 'writing result...'
         np.savetxt('result/classification.csv', predicts, delimiter=',', fmt='%s')
     else:
         cv = 5
@@ -92,4 +98,14 @@ if __name__ == '__main__':
             classifier, train_x, train_y_bin, cv=cv, scoring='accuracy')
 
         print("Accuracy: %0.8f (+/- %0.8f)" % (scores.mean(), scores.std() * 2))
-        # my best: Accuracy: 0.97261802 (+/- 0.00501778) (5-fold cross validation)
+        # my best: Accuracy: 0.97325326 (5-fold cross validation)
+        # SVC: 0.98099002
+
+        classifier.fit(train_x, train_y_bin)
+        predicts = classifier.predict(train_x)
+        predicts = np.asarray(predicts, dtype=int)
+        none_zero = np.where(predicts==1)[0]
+
+        none_zero_y = train_y[none_zero]
+        average = mean(none_zero_y)
+        print 'average loss of predicted records:', average
