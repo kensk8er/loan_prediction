@@ -75,8 +75,10 @@ def do_regression(classifier, data, mode):
     for i in xrange(len(y_train_default)):
         if y_train_default[i] <= 10:
             y_train_default[i] = 4 * scalar
-        else:
+        elif y_train_default[i] <= 50:
             y_train_default[i] = 14 * scalar
+        else:
+            y_train_default[i] = 50 * scalar  # this 50 should be probably lower (40 performed better)
     # for i in xrange(len(y_train_default)):
     #     if y_train_default[i] <= 10:
     #         y_train_default[i] = y_train_default[i] * 0.5 * scalar
@@ -167,7 +169,7 @@ if __name__ == '__main__':
     #                                   #random_state=None, class_weight=None)
 
     classifier = SVC(tol=0.01, C=15,
-                     random_state=None, class_weight={40: 0.4, 140: 0.6})
+                     random_state=None, class_weight={40: 0.2, 140: 0.3, 500: 0.5})
 
     print 'pre-processing train data...'
     scalar = preprocessing.StandardScaler().fit(X)
