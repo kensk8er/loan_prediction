@@ -95,7 +95,7 @@ if __name__ == '__main__':
         print cv, 'fold cross validation...'
 
         scores = cross_validation.cross_val_score(
-            classifier, train_x, train_y_bin, cv=cv, scoring='accuracy')
+            classifier, train_x, train_y_bin, cv=cv, scoring='f1')
 
         print("Accuracy: %0.8f (+/- %0.8f)" % (scores.mean(), scores.std() * 2))
         # my best: Accuracy: 0.97325326 (5-fold cross validation)
@@ -104,7 +104,7 @@ if __name__ == '__main__':
         classifier.fit(train_x, train_y_bin)
         predicts = classifier.predict(train_x)
         predicts = np.asarray(predicts, dtype=int)
-        none_zero = np.where(predicts==1)[0]
+        none_zero = np.where(predicts == 1)[0]
 
         none_zero_y = train_y[none_zero]
         average = mean(none_zero_y)
