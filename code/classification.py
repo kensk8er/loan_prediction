@@ -57,7 +57,7 @@ if __name__ == '__main__':
     #classifier = lm.LogisticRegression(penalty='l2', dual=False, tol=0.00001,
     #                                   C=10000, fit_intercept=True, intercept_scaling=1.0, # C=10000
     #                                   random_state=None, class_weight={0: 0.135, 1: 0.865})
-    classifier = SVC(tol=0.01, C=10,
+    classifier = SVC(tol=0.01, C=10, #gamma=0.48, # default: 0.25
                      random_state=None, class_weight={0: 0.135, 1: 0.865})
 
     print 'pre-processing train data...'
@@ -95,10 +95,10 @@ if __name__ == '__main__':
         print cv, 'fold cross validation...'
 
         scores = cross_validation.cross_val_score(
-            classifier, train_x, train_y_bin, cv=cv, scoring='f1')
+            classifier, train_x, train_y_bin, cv=cv, scoring='accuracy')
 
         print("Accuracy: %0.8f (+/- %0.8f)" % (scores.mean(), scores.std() * 2))
-        # my best: Accuracy: 0.97325326 (5-fold cross validation)
+        # my best: Accuracy: 0.98128395 (5-fold cross validation)
         # SVC: 0.98099002
 
         classifier.fit(train_x, train_y_bin)

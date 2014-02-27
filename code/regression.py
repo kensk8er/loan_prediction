@@ -76,9 +76,9 @@ def do_regression(classifier, data, mode):
         if y_train_default[i] <= 10:
             y_train_default[i] = 4 * scalar
         elif y_train_default[i] <= 50:
-            y_train_default[i] = 14 * scalar
+            y_train_default[i] = 10 * scalar
         else:
-            y_train_default[i] = 50 * scalar  # this 50 should be probably lower (40 performed better)
+            y_train_default[i] = 25 * scalar  # this 50 should be probably lower (40 performed better)
     # for i in xrange(len(y_train_default)):
     #     if y_train_default[i] <= 10:
     #         y_train_default[i] = y_train_default[i] * 0.5 * scalar
@@ -116,34 +116,34 @@ def do_regression(classifier, data, mode):
             classifier, x_train_default, y_train_default, cv=cv, scoring='accuracy')
 
         print("Accuracy: %0.8f (+/- %0.8f)" % (scores.mean(), scores.std() * 2))
-        # my best: Accuracy: 0.32065953 (+/- 0.00854811) (5 fold cross validation)
+        # my best accuracy: 0.79280312
 
-        classifier.fit(x_train_default, y_train_default)
-        y_predicts = classifier.predict(x_train_default)
-        y_true = y_train[none_zero_train]
-        error = 0.
-        upper_fit = 0
-        under_fit = 0
-        count = {}
-
-        for i in xrange(len(none_zero_train)):
-            error += abs(y_true[i] - y_predicts[i] / scalar)
-            count[y_predicts[i] / scalar] = count.get(y_predicts[i] / scalar, 0) + 1
-
-            if y_true[i] > y_predicts[i]:
-                under_fit += 1
-            elif y_true[i] < y_predicts[i]:
-                upper_fit += 1
-
-
-        local_MAE = error / len(y_true)
-        global_MAE = error / len(y_train)
-
-        print("local MAE: %0.8f" % local_MAE)
-        print("global MAE: %0.8f" % global_MAE)
-        print 'upper fit:', upper_fit, 'under fit:', under_fit
-        print 'average prediction', mean(y_predicts) / scalar
-        print count
+        # classifier.fit(x_train_default, y_train_default)
+        # y_predicts = classifier.predict(x_train_default)
+        # y_true_non_zero = y_train[none_zero_train]
+        # error = 0.
+        # upper_fit = 0
+        # under_fit = 0
+        # count = {}
+        #
+        # for i in xrange(len(none_zero_train)):
+        #     error += abs(y_true_non_zero[i] - y_predicts[i] / scalar)
+        #     count[y_predicts[i] / scalar] = count.get(y_predicts[i] / scalar, 0) + 1
+        #
+        #     if y_true_non_zero[i] > y_predicts[i]:
+        #         under_fit += 1
+        #     elif y_true_non_zero[i] < y_predicts[i]:
+        #         upper_fit += 1
+        #
+        #
+        # local_MAE = error / len(y_true_non_zero)
+        # global_MAE = error / len(y_train)
+        #
+        # print("local MAE: %0.8f" % local_MAE)
+        # print("global MAE: %0.8f" % global_MAE)
+        # print 'upper fit:', upper_fit, 'under fit:', under_fit
+        # print 'average prediction', mean(y_predicts) / scalar
+        # print count
 
 if __name__ == '__main__':
 
@@ -168,8 +168,8 @@ if __name__ == '__main__':
     #                                   random_state=None, class_weight={5: 0.012, 10: 0.035, 15: 0.038, 20: 0.051, 25: 0.064, 30: 0.077, 35: 0.09, 40: 0.1, 45: 0.11, 50: 0.13, 55: 0.14, 100: 0.15})
     #                                   #random_state=None, class_weight=None)
 
-    classifier = SVC(tol=0.01, C=15,
-                     random_state=None, class_weight={40: 0.2, 140: 0.3, 500: 0.5})
+    classifier = SVC(tol=0.01, C=15, #gamma=0.00105,
+                     random_state=None, class_weight={40: 0.2, 100: 0.3, 250: 0.5})  # this parameter can be better
 
     print 'pre-processing train data...'
     scalar = preprocessing.StandardScaler().fit(X)
