@@ -90,12 +90,13 @@ if __name__ == '__main__':
 
         predicts = classifier.predict(x_train_default)
         count = {}
-        mean = {}
+        loss_value = [[] for i in range(k)]
 
         for i in xrange(len(predicts)):
             count[predicts[i]] = count.get(predicts[i], 0) + 1
-            mean[predicts[i]] = mean.get(predicts[i], 0) + y_train_default[i]
+            loss_value[predicts[i]].append(y_train_default[i])  # = loss_value.get(predicts[i], 0) + y_train_default[i]
 
-        for i in range(len(mean)):
-            mean[i] /= count[i]
-            print 'cluster', i, ': count =', count[i], 'mean =', mean[i]
+        for i in range(len(loss_value)):
+            mean = np.mean(loss_value[i])
+            std = np.std(loss_value[i])
+            print 'cluster', i, ': count =', count[i], ', mean =', mean, ', std =', std
